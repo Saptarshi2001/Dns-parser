@@ -3,7 +3,7 @@ import socket
 import dns.message
 import dns.rdatatype
 import sys
-
+import struct
 
 class dnsparser:
     def __init__(self, hostname, port):
@@ -11,13 +11,15 @@ class dnsparser:
         self.port = port
 
     def get_data(self):
+        
         sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         sock.bind((self.hostname, self.port))
-        print("socket running at port "+f"{self.port}")
-        data, addr = sock.recvfrom(2024)
-
+        print("Socket listening at port "+f"{self.port}")
+        data,addr=sock.recvfrom(2024)
+        print(data)
+        sock.settimeout(10)
+            
         hex_data = data.hex()
-        
         sock.close()
 
         return hex_data
@@ -103,7 +105,8 @@ class dnsparser:
 
             elif sys.argv[2] == "-qname":
                 qname_hex=hexdata[24:(len(hexdata)-(4+4))]
-                print(f"QNAME in hexadecimal: {qname_hex}")
+                qname_int=int(qname_hex,16)
+                print(f"QNAME in decimal: {qname_int}")
 
             elif sys.argv[2] == "-qtype":
                 qtype_hex = hexdata[len(hexdata)-8:len(hexdata)-4]
@@ -121,6 +124,7 @@ class dnsparser:
         if sys.argv[1] == "-binary":
             if sys.argv[2] == "-id":
                 id = hexdata[0:4]
+                
 
                 print("id in binary" + "-  " + bin(int(id, 16))[2:].zfill(16))
 
@@ -446,25 +450,71 @@ class dnsparser:
 
     def binaryall(self, hexdata):
         if sys.argv[1] == "-all" and sys.argv[2] == "-binary":
+            flags = hexdata[4:8]
+            qrflags = int(flags, 16)
+            qr = (qrflags >> 15) & 1
+            opcodeflags = int(flags, 16)
+            opcode = (opcodeflags >> 11) & 0xF
+            aaflags = int(flags, 16)
+            aa = (aaflags >> 10) & 1
+            tcflags = int(flags, 16)
+            tc = (tcflags >> 9) & 1
+            rdflags = int(flags, 16)
+            rd = (rdflags >> 8) & 1
+            raflags = int(flags, 16)
+            ra = (raflags >> 7) & 1
+            zflags = int(flags, 16)
+            z = (zflags >> 4) & 0x7
+            rcodeflags = int(flags, 16)
+            rcode = rcodeflags & 0xF
+            qname = bin(int(hexdata[24:(len(hexdata)-(4+4))], 16))[2:].zfill(24)
+            qtype = bin(int(hexdata[len(hexdata)-8:len(hexdata)-4], 16))[2:].zfill(4)
+            qclass = bin(int(hexdata[len(hexdata)-4:], 16))[2:].zfill(4)
             print("The query in binary format  is:- ")
-            print(bin(int(hexdata, 16))[2:])
+            print(f'id:{hexdata[0:4]},qr: {qr}, opcode: {opcode}, aa: {aa}, tc: {tc}, rd: {rd}, ra: {ra}, z: {z}, rcode: {rcode},qname: {qname}, qtype: {qtype}, qclass: {qclass}')
 
     def hexall(self, hexdata):
-        if sys.argv[1] == "-all" and sys.argv[2] == "-hex":
-            print("The query in hex format  is:- ")
-            print(hexdata)
-
-    def strall(self, hexdata):
-        if sys.argv[1] == "-all" and sys.argv[2] == "-str":
+        if sys.argv[1] == "-all" and sys.argv[2] == "-dec":
+            flags = hex(hexdata[4:8])
+            qr = int(flags, 16)
+            opcode = int(flags, 16)
+            aa = int(flags, 16)
+            tc = int(flags, 16)
+            rd = int(flags, 16)
+            ra = int(flags, 16)
+            z = int(flags, 16)
+            rcode = int(flags, 16)
+            qname = int(hexdata[24:(len(hexdata)-(4+4))], 16)[2:]
+            qtype = int(hexdata[len(hexdata)-8:len(hexdata)-4], 16)[2:]
+            qclass = int(hexdata[len(hexdata)-4:], 16)[2:]
             print("The query in binary format  is:- ")
-            print(str(int(hexdata, 16)))
+            print(f'id:{hex(hexdata[0:4],16)},qr: {hex(qr)}, opcode: {hex(opcode)}, aa: {hex(aa)}, tc: {hex(tc)}, rd: {hex(rd)}, ra: {hex(ra)}, z: {hex(z)}, rcode: {hex(rcode)}, qname: {qname}, qtype: {qtype}, qclass: {qclass}')
+            
+
+    def decall(self, hexdata):
+        if sys.argv[1] == "-all" and sys.argv[2] == "-dec":
+            flags = hexdata[4:8]
+            qrflags = int(flags, 16)
+            opcodeflags = int(flags, 16)
+            aaflags = int(flags, 16)
+            tcflags = int(flags, 16)
+            rdflags = int(flags, 16)
+            raflags = int(flags, 16)
+            zflags = int(flags, 16)
+            rcodeflags = int(flags, 16)
+            qname = int(hexdata[24:(len(hexdata)-(4+4))], 16)[2:].zfill(24)
+            qtype = int(hexdata[len(hexdata)-8:len(hexdata)-4], 16)[2:].zfill(4)
+            qclass = int(hexdata[len(hexdata)-4:], 16)[2:].zfill(4)
+            print("The query in binary format  is:- ")
+            print(f'id:{int(hexdata[0:4],16)},qr: {qrflags}, opcode: {opcodeflags}, aa: {aaflags}, tc: {tcflags}, rd: {rdflags}, ra: {raflags}, z: {zflags}, rcode: {rcodeflags}, qname: {qname}, qtype: {qtype}, qclass: {qclass}')
+            
 
     def getqname(self,hexdata):
         qname=hexdata[24:(len(hexdata)-(4+4))]
         bytehex=bytes.fromhex(qname)
-        normal=bytehex.decode('utf-8',errors='ignore')
-        print(normal)
-        print("")
+        strqname=bytehex.decode('utf-8',errors='ignore')
+        print(strqname)
+        
 
 
 if __name__ == "__main__":
@@ -472,6 +522,7 @@ if __name__ == "__main__":
     port = 53
     parser = dnsparser(hostname, port)
     hexdata = parser.get_data()
+    
     if sys.argv[1] == "-binary":
         parser.parsebinary(hexdata)
     elif sys.argv[1] == "-hex":
@@ -485,8 +536,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == "-vertical" and sys.argv[2] == "-hex":
         parser.verticalhex(hexdata)
 
-    #elif sys.argv[1] == "-vertical" and sys.argv[2] == "-str":
-    #    parser.verticalstring(hexdata)
+    
 
     elif sys.argv[1] == "-all" and sys.argv[2] == "-binary":
         parser.binaryall(hexdata)
@@ -495,10 +545,10 @@ if __name__ == "__main__":
         parser.hexall(hexdata)
 
     elif sys.argv[1] == "-all" and sys.argv[2] == "-str":
-        parser.strall(hexdata)
+        parser.decall(hexdata)
     
     elif sys.argv[1] == "-qname":
         parser.getqname(hexdata)
 
 
-# if it works out,then can i make the forwarder possible
+
