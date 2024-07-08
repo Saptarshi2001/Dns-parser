@@ -12,7 +12,7 @@ def send_dns_query(domain=sys.argv[1], server_address=('127.0.0.1', 53)):
     
     
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-    
+
     sock.sendto(query_data, server_address)
     
 
